@@ -33,9 +33,9 @@ on enabledGUIScripting(flag)
 	end if
 end enabledGUIScripting
 
-##
-## FILE READING AND WRITING
-##
+
+#############################################
+# HANDLER
 
 -- Reading and Writing Params
 on writeTextToFile(theText, theFile, overwriteExistingContent)
@@ -60,7 +60,11 @@ end writeTextToFile
 property newLine : "
 "
 
+#############################################
+# HANDLER
+
 -- Write to file
+
 on writeFile(theContent, writable)
 	set now to current date
 	set mo to (month of now as string)
@@ -73,63 +77,64 @@ on writeFile(theContent, writable)
 	writeTextToFile(this_Story, theFile, writable)
 end writeFile
 
--- Make base keyword list from existing file
-on makeKeywordList()
+
+property file_baseKeywords : "/Users/nicokillips/Desktop/base-keywords.txt"
+property file_results : "/Users/nicokillips/Desktop/results.txt"
+property file_alphabet : "/Users/nicokillips/Desktop/alphabet.txt"
+
+#############################################
+# HANDLER
+
+-- Make a list from an existing file
+
+on makeListFromFile(theFile)
 	set theList to {}
-	set theKeywords to paragraphs of (read POSIX file "/Users/nicokillips/Desktop/base-keywords.txt")
-	repeat with nextLine in theKeywords
+	set theLines to paragraphs of (read POSIX file theFile)
+	repeat with nextLine in theLines
 		if length of nextLine is greater than 0 then
 			copy nextLine to the end of theList
 		end if
 	end repeat
 	return theList
-end makeKeywordList
+end makeListFromFile
 
---
-on getResults(instance)
+#############################################
+# HANDLER
+
+-- Get data from the DOM
+
+on getFromDOM(instance)
 	tell application "Safari"
 		do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
 	end tell
-end getResults
+end getFromDOM
 
--- Opens the Auto-Populated Results Container
-on openResultsContainer()
-	tell application "Safari"
-		do JavaScript "document.getElementById('search-suggestions').setAttribute('style','display: block');" in document 1
-	end tell
-end openResultsContainer
+#############################################
+# HANDLER
 
---
-on getAutoPopulatedWords()
-	set theCount to -1
-	set keyword to ""
-	
-	repeat
-		try
-			set updatedCount to (theCount + 1)
-			set keyword to getResults(updatedCount)
-			set theCount to theCount + 1
-			writeFile(keyword & newLine, false) as text
-		on error
-			set theCount to -1 #reset
-			
-			exit repeat
-		end try
-	end repeat
-	return
-end getAutoPopulatedWords
-
---
+-- Simulates user interaction to evoke Etsy's population of related words
 
 on inputEvent(keyword)
 	tell application "Safari"
 		activate
 		tell application "System Events"
 			tell process "Safari"
+				# Click the input
+				click text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1
+				
+				# Set the value of the input
 				set value of text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1 to keyword
 				
 				delay 1
 				
+				(*
+				select text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1
+				
+				delay 1
+				
+				perform action "AXPress" of text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1 *)
+				
+				# Adds space which initiates the results
 				key code 49
 				
 				delay 1
@@ -138,10 +143,66 @@ on inputEvent(keyword)
 	end tell
 end inputEvent
 
---
+
+#############################################
+# ROUTINE
+
+-- Loop through the results in the DOM
+-- Write the results line by line to results file
+
+on savePopulatedWords()
+	set theCount to -1
+	set theData to ""
+	
+	repeat
+		try
+			set updatedCount to (theCount + 1)
+			set theData to getFromDOM(updatedCount)
+			set theCount to theCount + 1
+			writeFile(theData & newLine, false) as text
+		on error
+			set theCount to -1 #reset
+			exit repeat
+		end try
+	end repeat
+	return
+end savePopulatedWords
+
+
+
+###############################################
+# ROUTINE
+
+-- Makes a list
+-- Loops through alphabet file
+-- Initiates user click
+-- Inserts letter
+-- Grabs results
+-- Saves to file
+
+on loopAlphabet()
+	set theList to makeListFromFile(file_alphabet)
+	
+	repeat with a from 1 to length of theList
+		set theCurrentListItem to item a of theList
+		inputEvent(theCurrentListItem)
+		delay 2
+		saveAutoPopulatedWords()
+	end repeat
+end loopAlphabet
+
+
+
+###############################################
+# ROUTINE
+
+-- Makes a list from the existing base keywords file
+-- Initiates Etsy's search bar populated related keywords for each line of the list
+-- Writes the results to "results" file
 
 on processBaseKeywordsFile()
-	set theList to makeKeywordList()
+	set theList to makeListFromFile(file_baseKeywords)
+	
 	
 	repeat with a from 1 to length of theList
 		set theCurrentListItem to item a of theList
@@ -150,22 +211,20 @@ on processBaseKeywordsFile()
 		
 		delay 2
 		
-		getAutoPopulatedWords()
+		savePopulatedWords()
 	end repeat
 end processBaseKeywordsFile
 
---
+###############################################
+-- Handler Tests
 
-processBaseKeywordsFile()
-
-
--- Tests
-#getAutoPopulatedWords()
-#setSearchInput("chrono")
+#savePopulatedWords()
+#inputEvent("chrono trigger")
+#loopAlphabet()
 
 
 
 
 -- Main Routine
-#processBaseKeywordsFile()
+processBaseKeywordsFile()
 
