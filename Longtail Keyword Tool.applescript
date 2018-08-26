@@ -103,11 +103,19 @@ end makeListFromFile
 
 -- Get data from the DOM
 
+property searchButtonPath : "#gnav-search > div > div.search-button-wrapper.hide > button"
+
 on getFromDOM(instance)
 	tell application "Safari"
 		do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
 	end tell
 end getFromDOM
+
+on activateSearchButton()
+	tell application "Safari"
+		do JavaScript "document.querySelector('" & searchButtonPath & "').click();" in document 1
+	end tell
+end activateSearchButton
 
 #############################################
 # HANDLER
@@ -144,6 +152,13 @@ on inputEvent(keyword)
 		end tell
 	end tell
 end inputEvent
+
+#############################################
+# HANDLER
+
+-- Click the Search Button
+
+
 
 
 #############################################
@@ -231,10 +246,11 @@ end processBaseKeywordsFile
 #savePopulatedWords()
 #inputEvent("chrono trigger")
 #loopAlphabet()
+activateSearchButton()
 
 
 
 
 -- Main Routine
-processBaseKeywordsFile()
+#processBaseKeywordsFile()
 
