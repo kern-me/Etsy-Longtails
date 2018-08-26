@@ -136,7 +136,9 @@ on inputEvent(keyword)
 				
 				# Adds space which initiates the results
 				key code 49
+				delay 1
 				
+				key code 51
 				delay 1
 			end tell
 		end tell
@@ -202,20 +204,28 @@ end loopAlphabet
 
 on processBaseKeywordsFile()
 	set theList to makeListFromFile(file_baseKeywords)
-	
+	set theList2 to makeListFromFile(file_alphabet)
 	
 	repeat with a from 1 to length of theList
 		set theCurrentListItem to item a of theList
 		
-		inputEvent(theCurrentListItem)
-		
-		delay 2
-		
-		savePopulatedWords()
+		repeat with a from 1 to length of theList2
+			set theCurrentListItem2 to item a of theList2
+			
+			set theQuery to (theCurrentListItem & " " & theCurrentListItem2)
+			
+			inputEvent(theCurrentListItem & " " & theCurrentListItem2)
+			
+			delay 2
+			
+			savePopulatedWords()
+		end repeat
 	end repeat
 end processBaseKeywordsFile
 
 ###############################################
+###############################################
+
 -- Handler Tests
 
 #savePopulatedWords()
