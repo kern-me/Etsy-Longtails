@@ -180,12 +180,9 @@ end inputEvent
 on getRelatedTagsFromDOM(instance)
 	set relatedTags_DOMPath to "#content .guided-search li:nth-child"
 	tell application "Safari"
-		do JavaScript "document.querySelector('" & relatedTags_DOMPath & "(" & instance & ") a').innerText" in document 1
+		do JavaScript "document.querySelector('" & relatedTags_DOMPath & "(" & instance & ") a').innerText;" in document 1
 	end tell
 end getRelatedTagsFromDOM
-
-
-
 
 
 #############################################
@@ -334,15 +331,19 @@ end findRelatedTags
 
 property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
 
-# Get Results Count
+on stripChar(char)
+	set charToStrip to "replace('" & char & " ','')"
+end stripChar
 
+# Get Results Count
 on getResultsCountFromDOM()
 	set thePath to "#content > div > div.content.bg-white.col-md-12.pl-xs-1.pr-xs-0.pr-md-1.pl-lg-0.pr-lg-0.bb-xs-1 > div > div > div.col-group.pl-xs-0.search-listings-group > div:nth-child(2) > div:nth-child(1) > div.float-left > div > span:nth-child(6)"
 	
 	tell application "Safari"
-		set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText" in document 1
+		set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(',','')" in document 1
 	end tell
 end getResultsCountFromDOM
+
 
 on findNumberofListings()
 	set theList to makeListFromFile(file_searchbar_longtail_tags)
@@ -372,4 +373,5 @@ end findNumberofListings
 -- Main Routine
 #processBaseKeywordsFile()
 #findRelatedKeywords()
-findNumberofListings()
+#findNumberofListings()
+getResultsCountFromDOM()
