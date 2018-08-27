@@ -57,13 +57,10 @@ on writeTextToFile(theText, theFile, overwriteExistingContent)
 	end try
 end writeTextToFile
 
-property newLine : "
-"
+
 
 #############################################
-# HANDLER
-
--- Write to file
+# HANDLER -- Write to file
 
 on writeFile(theContent, writable)
 	set now to current date
@@ -81,11 +78,14 @@ end writeFile
 property file_baseKeywords : "/Users/nicokillips/Desktop/base-keywords.txt"
 property file_results : "/Users/nicokillips/Desktop/results.txt"
 property file_alphabet : "/Users/nicokillips/Desktop/alphabet.txt"
+property file_relatedTags : "/Users/nicokillips/Desktop/related-tags.txt"
+
+property newLine : "
+"
+
 
 #############################################
-# HANDLER
-
--- Make a list from an existing file
+# HANDLER -- Make a list from an existing file
 
 on makeListFromFile(theFile)
 	set theList to {}
@@ -98,12 +98,21 @@ on makeListFromFile(theFile)
 	return theList
 end makeListFromFile
 
+
+
 #############################################
-# HANDLER
+# HANDLER -- Click the search button
 
--- Get data from the DOM
+on activateSearchButton()
+	set searchButtonPath to "#gnav-search > div > div.search-button-wrapper.hide > button"
+	tell application "Safari"
+		do JavaScript "document.querySelector('" & searchButtonPath & "').click();" in document 1
+	end tell
+end activateSearchButton
 
-property searchButtonPath : "#gnav-search > div > div.search-button-wrapper.hide > button"
+
+#############################################
+# HANDLER -- Get populated keyword results from DOM
 
 on getFromDOM(instance)
 	tell application "Safari"
@@ -111,16 +120,9 @@ on getFromDOM(instance)
 	end tell
 end getFromDOM
 
-on activateSearchButton()
-	tell application "Safari"
-		do JavaScript "document.querySelector('" & searchButtonPath & "').click();" in document 1
-	end tell
-end activateSearchButton
 
 #############################################
-# HANDLER
-
--- Simulates user interaction to evoke Etsy's population of related words
+# HANDLER -- Simulates user click to evoke Etsy's population of related words
 
 on inputEvent(keyword)
 	tell application "Safari"
@@ -153,19 +155,51 @@ on inputEvent(keyword)
 	end tell
 end inputEvent
 
-#############################################
-# HANDLER
-
--- Click the Search Button
-
-
 
 
 #############################################
-# ROUTINE
+# HANDLER -- Find Etsy's Related Keywords
 
--- Loop through the results in the DOM
--- Write the results line by line to results file
+on getRelatedTagsFromDOM(instance)
+	set relatedTags_DOMPath to "#content .guided-search li:nth-child"
+	tell application "Safari"
+		do JavaScript "document.querySelector('" & relatedTags_DOMPath & "(" & instance & ") a').innerText" in document 1
+	end tell
+end getRelatedTagsFromDOM
+
+
+
+#############################################
+# ROUTINE -- Loop through the related tags
+
+on loopRelatedTags()
+	set theCount to 0
+	set theData to ""
+	
+	repeat
+		try
+			set updatedCount to (theCount + 1)
+			log ("step 1")
+			set theData to getRelatedTagsFromDOM(updatedCount)
+			log ("step 2")
+			set theCount to theCount + 1
+			log ("step 3")
+			writeFile(theData & newLine, false) as text
+			log ("step 4")
+		on error
+			set theCount to -1 #reset
+			log ("step 5")
+			exit repeat
+		end try
+	end repeat
+	log ("End Repeat")
+	return
+end loopRelatedTags
+
+
+
+#############################################
+# ROUTINE -- Loop through the results in the DOM
 
 on savePopulatedWords()
 	set theCount to -1
@@ -246,7 +280,9 @@ end processBaseKeywordsFile
 #savePopulatedWords()
 #inputEvent("chrono trigger")
 #loopAlphabet()
-activateSearchButton()
+#getRelatedTagsFromDOM(3)
+#writeFile("Test", false)
+loopRelatedTags()
 
 
 
