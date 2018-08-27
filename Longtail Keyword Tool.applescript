@@ -120,6 +120,18 @@ on getFromDOM(instance)
 	end tell
 end getFromDOM
 
+#############################################
+# Set the Input
+#############################################
+
+on setInput(keyword)
+	tell application "System Events"
+		tell process "Safari"
+			set value of text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1 to keyword
+		end tell
+	end tell
+end setInput
+
 
 #############################################
 # HANDLER -- Simulates user click to evoke Etsy's population of related words
@@ -166,6 +178,8 @@ on getRelatedTagsFromDOM(instance)
 		do JavaScript "document.querySelector('" & relatedTags_DOMPath & "(" & instance & ") a').innerText" in document 1
 	end tell
 end getRelatedTagsFromDOM
+
+
 
 
 
@@ -273,20 +287,79 @@ on processBaseKeywordsFile()
 end processBaseKeywordsFile
 
 ###############################################
+
+##############################################
+# WAIT FOR PAGE LOAD
+
+on waitForPageLoad()
+	tell application "Safari"
+		local tids, theList, theText
+		set {tids, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "</html>"}
+		tell application "Safari" to set theText to source of its document 1
+		set theList to text items of theText
+		set AppleScript's text item delimiters to tids
+		if length of theList = 1 then return false
+		return true
+	end tell
+end waitForPageLoad
+
+##############################################
+# Find Related Keywords from Existing File
+
+on findRelatedTags()
+	set theList to makeListFromFile(file_baseKeywords)
+	repeat with a from 1 to length of theList
+		
+		set theCurrentListItem to item a of theList
+		setInput(theCurrentListItem)
+		activateSearchButton()
+		waitForPageLoad()
+		loopRelatedTags()
+	end repeat
+end findRelatedTags
+
+
+##############################################
+# Find Number of Listings of Related Tags
+
+property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
+
+# Get Results Count
+
+on getResultsCountFromDOM()
+	set thePath to "#content > div > div.content.bg-white.col-md-12.pl-xs-1.pr-xs-0.pr-md-1.pl-lg-0.pr-lg-0.bb-xs-1 > div > div > div.col-group.pl-xs-0.search-listings-group > div:nth-child(2) > div:nth-child(1) > div.float-left > div > span:nth-child(6)"
+	
+	tell application "Safari"
+		set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText" in document 1
+	end tell
+end getResultsCountFromDOM
+
+on findNumberofListings()
+	set theList to makeListFromFile(file_searchbar_longtail_tags)
+	repeat with a from 1 to length of theList
+		
+		set theCurrentListItem to item a of theList
+		setInput(theCurrentListItem)
+		activateSearchButton()
+		#waitForPageLoad()
+		delay 10
+		try
+			set theResults to getResultsCountFromDOM()
+			writeFile(theCurrentListItem & "," & theResults & newLine, false) as text
+		on error
+			writeFile(theCurrentListItem & "," & "no result" & newLine, false) as text
+		end try
+	end repeat
+end findNumberofListings
+
+
+
+
 ###############################################
-
 -- Handler Tests
-
-#savePopulatedWords()
-#inputEvent("chrono trigger")
-#loopAlphabet()
-#getRelatedTagsFromDOM(3)
-#writeFile("Test", false)
-loopRelatedTags()
-
-
 
 
 -- Main Routine
 #processBaseKeywordsFile()
-
+#findRelatedKeywords()
+findNumberofListings()
