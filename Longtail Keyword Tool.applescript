@@ -35,9 +35,9 @@ end enabledGUIScripting
 
 
 #############################################
-# HANDLER
+# Reading and Writing Params
+#############################################
 
--- Reading and Writing Params
 on writeTextToFile(theText, theFile, overwriteExistingContent)
 	try
 		set theFile to theFile as string
@@ -60,7 +60,8 @@ end writeTextToFile
 
 
 #############################################
-# HANDLER -- Write to file
+# Write to file
+#############################################
 
 on writeFile(theContent, writable)
 	set now to current date
@@ -85,8 +86,8 @@ property newLine : "
 
 
 #############################################
-# HANDLER -- Make a list from an existing file
-
+# Make a list from an existing file
+#############################################
 on makeListFromFile(theFile)
 	set theList to {}
 	set theLines to paragraphs of (read POSIX file theFile)
@@ -101,7 +102,8 @@ end makeListFromFile
 
 
 #############################################
-# HANDLER -- Click the search button
+# Click the search button
+#############################################
 
 on activateSearchButton()
 	set searchButtonPath to "#gnav-search > div > div.search-button-wrapper.hide > button"
@@ -112,7 +114,8 @@ end activateSearchButton
 
 
 #############################################
-# HANDLER -- Get populated keyword results from DOM
+# Get populated keyword results from DOM
+#############################################
 
 on getFromDOM(instance)
 	tell application "Safari"
@@ -134,7 +137,8 @@ end setInput
 
 
 #############################################
-# HANDLER -- Simulates user click to evoke Etsy's population of related words
+# Evoke Etsy's population of suggested tags
+#############################################
 
 on inputEvent(keyword)
 	tell application "Safari"
@@ -170,7 +174,8 @@ end inputEvent
 
 
 #############################################
-# HANDLER -- Find Etsy's Related Keywords
+# Find Etsy's Related Keywords
+#############################################
 
 on getRelatedTagsFromDOM(instance)
 	set relatedTags_DOMPath to "#content .guided-search li:nth-child"
@@ -184,7 +189,8 @@ end getRelatedTagsFromDOM
 
 
 #############################################
-# ROUTINE -- Loop through the related tags
+# Loop through the related tags
+#############################################
 
 on loopRelatedTags()
 	set theCount to 0
@@ -213,7 +219,8 @@ end loopRelatedTags
 
 
 #############################################
-# ROUTINE -- Loop through the results in the DOM
+# Loop through the tag result in the DOM
+#############################################
 
 on savePopulatedWords()
 	set theCount to -1
@@ -236,7 +243,8 @@ end savePopulatedWords
 
 
 ###############################################
-# ROUTINE
+# Loop the Alphabet file
+#############################################
 
 -- Makes a list
 -- Loops through alphabet file
@@ -259,7 +267,8 @@ end loopAlphabet
 
 
 ###############################################
-# ROUTINE
+# Process the Base Keywords
+#############################################
 
 -- Makes a list from the existing base keywords file
 -- Initiates Etsy's search bar populated related keywords for each line of the list
@@ -286,10 +295,9 @@ on processBaseKeywordsFile()
 	end repeat
 end processBaseKeywordsFile
 
-###############################################
-
 ##############################################
-# WAIT FOR PAGE LOAD
+# Wait for the Page Load
+#############################################
 
 on waitForPageLoad()
 	tell application "Safari"
@@ -305,6 +313,7 @@ end waitForPageLoad
 
 ##############################################
 # Find Related Keywords from Existing File
+#############################################
 
 on findRelatedTags()
 	set theList to makeListFromFile(file_baseKeywords)
@@ -321,6 +330,7 @@ end findRelatedTags
 
 ##############################################
 # Find Number of Listings of Related Tags
+#############################################
 
 property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
 
