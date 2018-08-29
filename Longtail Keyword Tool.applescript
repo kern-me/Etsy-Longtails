@@ -1,3 +1,7 @@
+#############################################
+# GLOBAL HANDLERS
+#############################################
+
 on enabledGUIScripting(flag)
 	considering numeric strings
 		set MountainLionOrOlder to system version of (system info) < "10.9"
@@ -33,11 +37,28 @@ on enabledGUIScripting(flag)
 	end if
 end enabledGUIScripting
 
+---------------------------------------------
+-- Wait for the Page Load
+---------------------------------------------
+on waitForPageLoad()
+	tell application "Safari"
+		local tids, theList, theText
+		set {tids, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "</html>"}
+		tell application "Safari" to set theText to source of its document 1
+		set theList to text items of theText
+		set AppleScript's text item delimiters to tids
+		if length of theList = 1 then return false
+		return true
+	end tell
+end waitForPageLoad
 
-#############################################
-# Reading and Writing Params
-#############################################
+##########################################################################################
+# FILE HANDLERS
+##########################################################################################
 
+---------------------------------------------
+-- Reading and Writing Params
+---------------------------------------------
 on writeTextToFile(theText, theFile, overwriteExistingContent)
 	try
 		set theFile to theFile as string
@@ -57,12 +78,9 @@ on writeTextToFile(theText, theFile, overwriteExistingContent)
 	end try
 end writeTextToFile
 
-
-
-#############################################
-# Write to file
-#############################################
-
+---------------------------------------------
+-- Write to file
+---------------------------------------------
 on writeFile(theContent, writable)
 	set now to current date
 	set mo to (month of now as string)
@@ -75,19 +93,66 @@ on writeFile(theContent, writable)
 	writeTextToFile(this_Story, theFile, writable)
 end writeFile
 
+##########################################################################################
+# PROPERTIES
+##########################################################################################
 
-property file_baseKeywords : "/Users/nicokillips/Desktop/base-keywords.txt"
+property searchBar : "text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1"
+property file_baseKeywords : "" & (path to desktop folder) & "base-keywords.txt"
 property file_results : "/Users/nicokillips/Desktop/results.txt"
 property file_alphabet : "/Users/nicokillips/Desktop/alphabet.txt"
 property file_relatedTags : "/Users/nicokillips/Desktop/related-tags.txt"
+property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
 
 property newLine : "
 "
 
+##########################################################################################
+# LIST HANDLERS
+##########################################################################################
 
-#############################################
-# Make a list from an existing file
-#############################################
+---------------------------------------------
+-- Insert Item into a List
+---------------------------------------------
+on insertItemInList(theItem, theList, thePosition)
+	set theListCount to length of theList
+	if thePosition is 0 then
+		return false
+	else if thePosition is less than 0 then
+		if (thePosition * -1) is greater than theListCount + 1 then return false
+	else
+		if thePosition is greater than theListCount + 1 then return false
+	end if
+	if thePosition is less than 0 then
+		if (thePosition * -1) is theListCount + 1 then
+			set beginning of theList to theItem
+		else
+			set theList to reverse of theList
+			set thePosition to (thePosition * -1)
+			if thePosition is 1 then
+				set beginning of theList to theItem
+			else if thePosition is (theListCount + 1) then
+				set end of theList to theItem
+			else
+				set theList to (items 1 thru (thePosition - 1) of theList) & theItem & (items thePosition thru -1 of theList)
+			end if
+			set theList to reverse of theList
+		end if
+	else
+		if thePosition is 1 then
+			set beginning of theList to theItem
+		else if thePosition is (theListCount + 1) then
+			set end of theList to theItem
+		else
+			set theList to (items 1 thru (thePosition - 1) of theList) & theItem & (items thePosition thru -1 of theList)
+		end if
+	end if
+	return theList
+end insertItemInList
+
+---------------------------------------------
+-- Make a list from an existing file
+---------------------------------------------
 on makeListFromFile(theFile)
 	set theList to {}
 	set theLines to paragraphs of (read POSIX file theFile)
@@ -100,11 +165,14 @@ on makeListFromFile(theFile)
 end makeListFromFile
 
 
+##########################################################################################
+# SEARCH BUTTON / INTERACTIONS HANDLERS
+##########################################################################################
+property searchInputDOMPath : "#gnav-search input#search-query"
 
-#############################################
-# Click the search button
-#############################################
-
+---------------------------------------------
+-- Click the search button
+---------------------------------------------
 on activateSearchButton()
 	set searchButtonPath to "#gnav-search > div > div.search-button-wrapper.hide > button"
 	tell application "Safari"
@@ -112,34 +180,18 @@ on activateSearchButton()
 	end tell
 end activateSearchButton
 
-
-#############################################
-# Get populated keyword results from DOM
-#############################################
-
-on getFromDOM(instance)
+---------------------------------------------
+-- Set the Input
+---------------------------------------------
+on setInput(theValue)
 	tell application "Safari"
-		do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
-	end tell
-end getFromDOM
-
-#############################################
-# Set the Input
-#############################################
-
-on setInput(keyword)
-	tell application "System Events"
-		tell process "Safari"
-			set value of text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1 to keyword
-		end tell
+		set inputPath to do JavaScript "document.querySelector('" & searchInputDOMPath & "').value = ('" & theValue & "');" in document 1
 	end tell
 end setInput
 
-
-#############################################
-# Evoke Etsy's population of suggested tags
-#############################################
-
+---------------------------------------------
+-- Evoke Etsy's population of suggested tags
+---------------------------------------------
 on inputEvent(keyword)
 	tell application "Safari"
 		activate
@@ -172,84 +224,156 @@ on inputEvent(keyword)
 end inputEvent
 
 
-
 #############################################
-# Find Etsy's Related Keywords
+# DOM HANDLERS
 #############################################
 
-on getRelatedTagsFromDOM(instance)
-	set relatedTags_DOMPath to "#content .guided-search li:nth-child"
+---------------------------------------------
+-- Get suggested keyword results from DOM
+---------------------------------------------
+on getFromDOM(instance)
 	tell application "Safari"
-		do JavaScript "document.querySelector('" & relatedTags_DOMPath & "(" & instance & ") a').innerText;" in document 1
+		do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
 	end tell
-end getRelatedTagsFromDOM
+end getFromDOM
 
 
-#############################################
-# Loop through the related tags
-#############################################
-
-on loopRelatedTags()
-	set theCount to 0
-	set theData to ""
+---------------------------------------------
+-- Get Number of Total Listings for a Tag
+---------------------------------------------
+on getResultsCountFromDOM()
+	set thePath to "#content > div > div.content.bg-white.col-md-12.pl-xs-1.pr-xs-0.pr-md-1.pl-lg-0.pr-lg-0.bb-xs-1 > div > div > div.col-group.pl-xs-0.search-listings-group > div:nth-child(2) > div:nth-child(1) > div.float-left > div > span:nth-child(6)"
 	
-	repeat
+	tell application "Safari"
 		try
-			set updatedCount to (theCount + 1)
-			log ("step 1")
-			set theData to getRelatedTagsFromDOM(updatedCount)
-			log ("step 2")
-			set theCount to theCount + 1
-			log ("step 3")
-			writeFile(theData & newLine, false) as text
-			log ("step 4")
+			set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(',','').replace('(','').replace(')','').replace(' Results','')" in document 1
+			return theResult as number
 		on error
-			set theCount to -1 #reset
-			log ("step 5")
-			exit repeat
+			return false
 		end try
-	end repeat
-	log ("End Repeat")
-	return
-end loopRelatedTags
+	end tell
+end getResultsCountFromDOM
 
+
+---------------------------------------------
+-- Suggested Tag results from DOM
+---------------------------------------------
+on getSuggestedTags(instance)
+	tell application "Safari"
+		try
+			set theData to do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
+			return theData
+		on error
+			return false
+		end try
+	end tell
+end getSuggestedTags
 
 
 #############################################
-# Loop through the tag result in the DOM
+# LOOP ROUTINES
 #############################################
 
-on savePopulatedWords()
+---------------------------------------------
+-- Save the suggested words
+---------------------------------------------
+on saveSuggestedTags()
 	set theCount to -1
 	set theData to ""
 	
 	repeat
-		try
-			set updatedCount to (theCount + 1)
-			set theData to getFromDOM(updatedCount)
-			set theCount to theCount + 1
-			writeFile(theData & newLine, false) as text
-		on error
-			set theCount to -1 #reset
+		set updatedCount to (theCount + 1)
+		set theData to getSuggestedTags(updatedCount)
+		
+		if theData is false then
 			exit repeat
-		end try
+		end if
+		
+		set theCount to theCount + 1
+		
+		writeFile(theData & newLine, false) as text
 	end repeat
 	return
-end savePopulatedWords
+end saveSuggestedTags
+
+---------------------------------------------
+-- Save Reviews
+---------------------------------------------
+on getReview(instance)
+	set thePath to ".stars-svg + span"
+	
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "')[" & instance & "].innerText.replace(',','').replace('(','').replace(')','')" in document 1
+			
+			(*
+			set s to quoted form of theResult
+			do shell script "sed s/[a-zA-Z\\']//g <<< " & s
+			set dx to the result
+			set numlist to {}
+			repeat with i from 1 to count of words in dx
+				set this_item to word i of dx
+				try
+					set this_item to this_item as number
+					set the end of numlist to this_item
+				end try
+			end repeat
+			
+			return numlist
+			*)
+			return theResult
+		on error
+			return -1
+		end try
+	end tell
+end getReview
+
+---------------------------------------------
+-- Loop over Review Values
+---------------------------------------------
+property reviewCount : 0
+
+on saveReviews()
+	set theCount to -1
+	set nodeCounter to 0
+	set theData to ""
+	
+	repeat
+		set updatedCount to (theCount + 1)
+		log updatedCount
+		
+		set theData to getReview(updatedCount)
+		
+		
+		log getReview(updatedCount)
+		
+		if theData is -1 then
+			exit repeat
+		end if
+		
+		set theCount to theCount + 1
+		set nodeCounter to nodeCounter + 1
+		log nodeCounter
+		
+		set reviewCount to (theData + reviewCount)
+		log ("add theData to reviewCount property")
+		log reviewCount
+		
+	end repeat
+	set avgReviews to reviewCount / nodeCounter
+	set avgReviews to avgReviews as text
+	#set reviewCount to reviewCount as text
+	#set nodeCounter to nodeCounter as text
+	
+	writeFile(avgReviews & newLine, false)
+	set reviewCount to 0
+	return
+end saveReviews
 
 
-
-###############################################
-# Loop the Alphabet file
-#############################################
-
--- Makes a list
--- Loops through alphabet file
--- Initiates user click
--- Inserts letter
--- Grabs results
--- Saves to file
-
+---------------------------------------------
+-- Loop the Alphabet file
+---------------------------------------------
 on loopAlphabet()
 	set theList to makeListFromFile(file_alphabet)
 	
@@ -257,16 +381,14 @@ on loopAlphabet()
 		set theCurrentListItem to item a of theList
 		inputEvent(theCurrentListItem)
 		delay 2
-		saveAutoPopulatedWords()
+		saveSuggestedTags()
 	end repeat
 end loopAlphabet
 
 
-
-###############################################
-# Process the Base Keywords
-#############################################
-
+---------------------------------------------
+-- Process the Base Keywords
+---------------------------------------------
 -- Makes a list from the existing base keywords file
 -- Initiates Etsy's search bar populated related keywords for each line of the list
 -- Writes the results to "results" file
@@ -280,98 +402,49 @@ on processBaseKeywordsFile()
 		
 		repeat with a from 1 to length of theList2
 			set theCurrentListItem2 to item a of theList2
-			
 			set theQuery to (theCurrentListItem & " " & theCurrentListItem2)
 			
 			inputEvent(theCurrentListItem & " " & theCurrentListItem2)
 			
 			delay 2
 			
-			savePopulatedWords()
+			saveSuggestedTags()
 		end repeat
 	end repeat
 end processBaseKeywordsFile
 
-##############################################
-# Wait for the Page Load
-#############################################
 
-on waitForPageLoad()
-	tell application "Safari"
-		local tids, theList, theText
-		set {tids, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "</html>"}
-		tell application "Safari" to set theText to source of its document 1
-		set theList to text items of theText
-		set AppleScript's text item delimiters to tids
-		if length of theList = 1 then return false
-		return true
-	end tell
-end waitForPageLoad
-
-##############################################
-# Find Related Keywords from Existing File
-#############################################
-
-on findRelatedTags()
-	set theList to makeListFromFile(file_baseKeywords)
-	repeat with a from 1 to length of theList
-		
-		set theCurrentListItem to item a of theList
-		setInput(theCurrentListItem)
-		activateSearchButton()
-		waitForPageLoad()
-		loopRelatedTags()
-	end repeat
-end findRelatedTags
-
-
-##############################################
-# Find Number of Listings of Related Tags
-#############################################
-
-property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
-
-on stripChar(char)
-	set charToStrip to "replace('" & char & " ','')"
-end stripChar
-
-# Get Results Count
-on getResultsCountFromDOM()
-	set thePath to "#content > div > div.content.bg-white.col-md-12.pl-xs-1.pr-xs-0.pr-md-1.pl-lg-0.pr-lg-0.bb-xs-1 > div > div > div.col-group.pl-xs-0.search-listings-group > div:nth-child(2) > div:nth-child(1) > div.float-left > div > span:nth-child(6)"
-	
-	tell application "Safari"
-		set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(',','')" in document 1
-	end tell
-end getResultsCountFromDOM
-
-
+---------------------------------------------
+-- Find Number of Listings
+---------------------------------------------
 on findNumberofListings()
 	set theList to makeListFromFile(file_searchbar_longtail_tags)
+	
 	repeat with a from 1 to length of theList
-		
 		set theCurrentListItem to item a of theList
+		
 		setInput(theCurrentListItem)
+		delay 1
 		activateSearchButton()
-		#waitForPageLoad()
-		delay 10
-		try
-			set theResults to getResultsCountFromDOM()
-			writeFile(theCurrentListItem & "," & theResults & newLine, false) as text
-		on error
+		delay 1
+		waitForPageLoad()
+		
+		set theResults to getResultsCountFromDOM()
+		
+		if theResults is false then
 			writeFile(theCurrentListItem & "," & "no result" & newLine, false) as text
-		end try
+		end if
+		
+		writeFile(theCurrentListItem & "," & theResults & newLine, false) as text
 	end repeat
 end findNumberofListings
 
 
-
-
-###############################################
--- Handler Tests
-
-
 -- Main Routine
 #processBaseKeywordsFile()
-#findRelatedKeywords()
 #findNumberofListings()
-getResultsCountFromDOM()
+#getReview(10)
+saveReviews()
+
+
+
