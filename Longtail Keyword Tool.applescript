@@ -40,15 +40,15 @@ end enabledGUIScripting
 ---------------------------------------------
 -- Wait for the Page Load
 ---------------------------------------------
-on waitForPageLoad()
+property theDelay : 1
+
+on waitForPageLoad(var)
+	set doJS to "document.querySelector('.search-listings-group h1').innerText;"
+	
 	tell application "Safari"
-		local tids, theList, theText
-		set {tids, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "</html>"}
-		tell application "Safari" to set theText to source of its document 1
-		set theList to text items of theText
-		set AppleScript's text item delimiters to tids
-		if length of theList = 1 then return false
-		return true
+		repeat until do JavaScript doJS as text is var
+		end repeat
+		delay theDelay
 	end tell
 end waitForPageLoad
 
@@ -174,7 +174,12 @@ property searchInputDOMPath : "#gnav-search input#search-query"
 -- Click the search button
 ---------------------------------------------
 on activateSearchButton()
+	log "---------------------------------"
+	log "activateSearchButton()"
+	log "---------------------------------"
+	
 	set searchButtonPath to "#gnav-search > div > div.search-button-wrapper.hide > button"
+	
 	tell application "Safari"
 		do JavaScript "document.querySelector('" & searchButtonPath & "').click();" in document 1
 	end tell
@@ -184,10 +189,28 @@ end activateSearchButton
 -- Set the Input
 ---------------------------------------------
 on setInput(theValue)
+	log "---------------------------------"
+	log "setInput(" & theValue & ")"
+	log "---------------------------------"
+	
 	tell application "Safari"
 		set inputPath to do JavaScript "document.querySelector('" & searchInputDOMPath & "').value = ('" & theValue & "');" in document 1
 	end tell
 end setInput
+
+
+on getInput()
+	log "---------------------------------"
+	log "getInput()"
+	log "---------------------------------"
+	
+	set thePath to ".ss-navigateright + span + h1"
+	
+	tell application "Safari"
+		set inputPath to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(',','').replace('(','').replace(')','')" in document 1
+	end tell
+end getInput
+
 
 ---------------------------------------------
 -- Evoke Etsy's population of suggested tags
@@ -205,14 +228,6 @@ on inputEvent(keyword)
 				
 				delay 1
 				
-				(*
-				select text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1
-				
-				delay 1
-				
-				perform action "AXPress" of text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1 *)
-				
-				# Adds space which initiates the results
 				key code 49
 				delay 1
 				
@@ -232,6 +247,10 @@ end inputEvent
 -- Get suggested keyword results from DOM
 ---------------------------------------------
 on getFromDOM(instance)
+	log "---------------------------------"
+	log "getFromDOM(" & instance & ")"
+	log "---------------------------------"
+	
 	tell application "Safari"
 		do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
 	end tell
@@ -239,32 +258,18 @@ end getFromDOM
 
 
 ---------------------------------------------
--- Get Number of Total Listings for a Tag
----------------------------------------------
-on getResultsCountFromDOM()
-	set thePath to "#content > div > div.content.bg-white.col-md-12.pl-xs-1.pr-xs-0.pr-md-1.pl-lg-0.pr-lg-0.bb-xs-1 > div > div > div.col-group.pl-xs-0.search-listings-group > div:nth-child(2) > div:nth-child(1) > div.float-left > div > span:nth-child(6)"
-	
-	tell application "Safari"
-		try
-			set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(',','').replace('(','').replace(')','').replace(' Results','')" in document 1
-			return theResult as number
-		on error
-			return false
-		end try
-	end tell
-end getResultsCountFromDOM
-
-
----------------------------------------------
 -- Suggested Tag results from DOM
 ---------------------------------------------
 on getSuggestedTags(instance)
+	log "---------------------------------"
+	log "getSuggestedTags(" & instance & ")"
+	log "---------------------------------"
 	tell application "Safari"
 		try
 			set theData to do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
 			return theData
 		on error
-			return false
+			set theData to false
 		end try
 	end tell
 end getSuggestedTags
@@ -278,6 +283,10 @@ end getSuggestedTags
 -- Save the suggested words
 ---------------------------------------------
 on saveSuggestedTags()
+	log "================================="
+	log "saveSuggestedTags()"
+	log "================================="
+	
 	set theCount to -1
 	set theData to ""
 	
@@ -297,84 +306,108 @@ on saveSuggestedTags()
 end saveSuggestedTags
 
 ---------------------------------------------
--- Save Reviews
+-- Get Seller Review value from the DOM
 ---------------------------------------------
-on getReview(instance)
+on getSellerReviewsValue(instance)
 	set thePath to ".stars-svg + span"
 	
 	tell application "Safari"
 		try
-			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "')[" & instance & "].innerText.replace(',','').replace('(','').replace(')','')" in document 1
+			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "')[" & instance & "].innerText.replace(/,/g,'').replace('(','').replace(')','')" in document 1
 			
-			(*
-			set s to quoted form of theResult
-			do shell script "sed s/[a-zA-Z\\']//g <<< " & s
-			set dx to the result
-			set numlist to {}
-			repeat with i from 1 to count of words in dx
-				set this_item to word i of dx
-				try
-					set this_item to this_item as number
-					set the end of numlist to this_item
-				end try
-			end repeat
-			
-			return numlist
-			*)
 			return theResult
+			log "return " & theResult & ""
+			
+			
 		on error
+			log ("END of LOOP")
+			delay 1
 			return -1
 		end try
 	end tell
-end getReview
+end getSellerReviewsValue
 
 ---------------------------------------------
--- Loop over Review Values
+-- Sum of Seller Reviews
 ---------------------------------------------
-property reviewCount : 0
-
-on saveReviews()
+on getTotalSellerReviews()
 	set theCount to -1
-	set nodeCounter to 0
-	set theData to ""
+	set theData to 0
 	
 	repeat
 		set updatedCount to (theCount + 1)
-		log updatedCount
+		set loopChecker to getSellerReviewsValue(updatedCount)
 		
-		set theData to getReview(updatedCount)
-		
-		
-		log getReview(updatedCount)
-		
-		if theData is -1 then
+		if loopChecker is -1 then
+			log "Return"
+			log theData
+			
+			return theData
 			exit repeat
 		end if
 		
-		set theCount to theCount + 1
-		set nodeCounter to nodeCounter + 1
-		log nodeCounter
+		set updatedReviewsCount to (theData + getSellerReviewsValue(updatedCount))
+		set theData to updatedReviewsCount
+		set theCount to (theCount + 1)
 		
-		set reviewCount to (theData + reviewCount)
-		log ("add theData to reviewCount property")
-		log reviewCount
-		
+		delay 0.15
 	end repeat
-	set avgReviews to reviewCount / nodeCounter
-	set avgReviews to avgReviews as text
-	#set reviewCount to reviewCount as text
-	#set nodeCounter to nodeCounter as text
+end getTotalSellerReviews
+
+
+---------------------------------------------
+-- Count the Number of First Page Listings
+---------------------------------------------
+on countFirstPageListingResults()
+	log "---------------------------------"
+	log "countFirstPageListingResults()"
+	log "---------------------------------"
 	
-	writeFile(avgReviews & newLine, false)
-	set reviewCount to 0
-	return
-end saveReviews
+	set thePath to ".stars-svg + span"
+	
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "').length" in document 1
+			return theResult
+		on error
+			delay 1
+			return "No Results Found."
+		end try
+	end tell
+end countFirstPageListingResults
+
+
+---------------------------------------------
+-- ROUTINE : Get Average Number of Reviews
+---------------------------------------------
+
+on getAvgReviews()
+	log "================================="
+	log "getAvgReviews()"
+	log "================================="
+	
+	
+	set totalReviews to getTotalSellerReviews()
+	set totalListings to countFirstPageListingResults()
+	
+	set avgReviews to (totalReviews / totalListings)
+	log "" & totalReviews & " / " & totalListings & " = " & avgReviews & ""
+	
+	set avgReviews to round avgReviews as text
+	log avgReviews
+	
+	return avgReviews
+end getAvgReviews
 
 
 ---------------------------------------------
 -- Loop the Alphabet file
 ---------------------------------------------
 on loopAlphabet()
+	log "================================="
+	log "loopAlphabet()"
+	log "================================="
+	
 	set theList to makeListFromFile(file_alphabet)
 	
 	repeat with a from 1 to length of theList
@@ -394,6 +427,10 @@ end loopAlphabet
 -- Writes the results to "results" file
 
 on processBaseKeywordsFile()
+	log "================================="
+	log "processBaseKeywordsFile()"
+	log "================================="
+	
 	set theList to makeListFromFile(file_baseKeywords)
 	set theList2 to makeListFromFile(file_alphabet)
 	
@@ -413,11 +450,44 @@ on processBaseKeywordsFile()
 	end repeat
 end processBaseKeywordsFile
 
+---------------------------------------------
+-- Get Number of Total Listings for a Tag
+---------------------------------------------
+on getTotalListings()
+	log "---------------------------------"
+	log "getTotalListings()"
+	log "---------------------------------"
+	
+	set thePath to ".ss-navigateright + span + h1 + span + span"
+	
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(/,/g,'').replace('(','').replace(')','').replace(' Result','').replace('s','')" in document 1
+			log ("Do JS to get result.")
+			
+			delay 1
+			
+			set theValue to round theResult
+			log ("Round the result: " & theResult & "")
+			
+			return theValue
+			log ("Return theResult")
+			
+			error
+			
+			delay 1
+			
+			return false
+			log ("Return false")
+		end try
+	end tell
+end getTotalListings
+
 
 ---------------------------------------------
--- Find Number of Listings
+-- Process Competition and Reputation
 ---------------------------------------------
-on findNumberofListings()
+on processCompetitionAndReputation()
 	set theList to makeListFromFile(file_searchbar_longtail_tags)
 	
 	repeat with a from 1 to length of theList
@@ -425,26 +495,54 @@ on findNumberofListings()
 		
 		setInput(theCurrentListItem)
 		delay 1
+		
 		activateSearchButton()
 		delay 1
-		waitForPageLoad()
 		
-		set theResults to getResultsCountFromDOM()
+		waitForPageLoad(theCurrentListItem)
+		delay 2
 		
-		if theResults is false then
-			writeFile(theCurrentListItem & "," & "no result" & newLine, false) as text
-		end if
+		set totalListings to getTotalListings() as text
+		delay 1
 		
-		writeFile(theCurrentListItem & "," & theResults & newLine, false) as text
+		set avgReviews to getAvgReviews()
+		delay 1
+		
+		writeFile(theCurrentListItem & "," & totalListings & "," & avgReviews & "," & newLine, false) as text
 	end repeat
-end findNumberofListings
+end processCompetitionAndReputation
 
 
+---------------------------------------------
+-- Process one listing
+---------------------------------------------
+on processOneListing()
+	set tagName to getInput()
+	set resultsCount to getTotalListings()
+	set avgReviewsCount to getAvgReviews()
+	
+	if resultsCount is false then
+		set resultsCount to "No Results"
+	end if
+	
+	writeFile(tagName & "," & resultsCount & "," & avgReviewsCount & "," & newLine, false) as text
+end processOneListing
+
+---------------------------------------------
 -- Main Routine
-#processBaseKeywordsFile()
+---------------------------------------------
+
 #findNumberofListings()
-#getReview(10)
-saveReviews()
+#getSellerReviewsValue(10)
+#saveReviews()
+#processOneListing()
+#getAvgReviews()
+
+#processBaseKeywordsFile()
+processCompetitionAndReputation()
+#countFirstPageListingResults()
+#getTotalSellerReviews()
+
 
 
 
