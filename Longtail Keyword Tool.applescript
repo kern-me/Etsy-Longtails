@@ -1,3 +1,24 @@
+##########################################################################################
+# PROPERTIES
+##########################################################################################
+
+# DOM
+property searchBar : "text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1"
+
+# File Paths
+property file_baseKeywords : "" & (path to desktop folder) & "base-keywords.txt"
+property file_results : "/Users/nicokillips/Desktop/results.txt"
+property file_alphabet : "/Users/nicokillips/Desktop/alphabet.txt"
+property file_relatedTags : "/Users/nicokillips/Desktop/related-tags.txt"
+property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
+
+# Delays
+property theDelay : 1
+
+# Formatting
+property newLine : "
+"
+
 #############################################
 # GLOBAL HANDLERS
 #############################################
@@ -37,25 +58,26 @@ on enabledGUIScripting(flag)
 	end if
 end enabledGUIScripting
 
+
+##########################################################################################
+# WAIT FOR PAGE LOAD
+##########################################################################################
 ---------------------------------------------
 -- Wait for the Page Load
 ---------------------------------------------
-property theDelay : 1
-
 on waitForPageLoad(var)
 	set doJS to "document.querySelector('.search-listings-group h1').innerText;"
 	
 	tell application "Safari"
 		repeat until do JavaScript doJS as text is var
 		end repeat
-		delay theDelay
+		delay 2
 	end tell
 end waitForPageLoad
 
 ##########################################################################################
 # FILE HANDLERS
 ##########################################################################################
-
 ---------------------------------------------
 -- Reading and Writing Params
 ---------------------------------------------
@@ -78,6 +100,7 @@ on writeTextToFile(theText, theFile, overwriteExistingContent)
 	end try
 end writeTextToFile
 
+
 ---------------------------------------------
 -- Write to file
 ---------------------------------------------
@@ -93,24 +116,10 @@ on writeFile(theContent, writable)
 	writeTextToFile(this_Story, theFile, writable)
 end writeFile
 
-##########################################################################################
-# PROPERTIES
-##########################################################################################
-
-property searchBar : "text field 1 of group 1 of group 1 of group 1 of group 2 of UI element 1 of scroll area 1 of group 1 of group 1 of tab group 1 of splitter group 1 of window 1"
-property file_baseKeywords : "" & (path to desktop folder) & "base-keywords.txt"
-property file_results : "/Users/nicokillips/Desktop/results.txt"
-property file_alphabet : "/Users/nicokillips/Desktop/alphabet.txt"
-property file_relatedTags : "/Users/nicokillips/Desktop/related-tags.txt"
-property file_searchbar_longtail_tags : "/Users/nicokillips/Desktop/search-bar-longtails.txt"
-
-property newLine : "
-"
 
 ##########################################################################################
-# LIST HANDLERS
+# LIST HANDLERS / ROUTINES
 ##########################################################################################
-
 ---------------------------------------------
 -- Insert Item into a List
 ---------------------------------------------
@@ -168,42 +177,32 @@ end makeListFromFile
 ##########################################################################################
 # SEARCH BUTTON / INTERACTIONS HANDLERS
 ##########################################################################################
-property searchInputDOMPath : "#gnav-search input#search-query"
-
 ---------------------------------------------
--- Click the search button
+-- ACTIVATE the Search Button
 ---------------------------------------------
 on activateSearchButton()
-	log "---------------------------------"
-	log "activateSearchButton()"
-	log "---------------------------------"
-	
-	set searchButtonPath to "#gnav-search > div > div.search-button-wrapper.hide > button"
+	set thePath to "#gnav-search > div > div.search-button-wrapper.hide > button"
 	
 	tell application "Safari"
-		do JavaScript "document.querySelector('" & searchButtonPath & "').click();" in document 1
+		do JavaScript "document.querySelector('" & thePath & "').click();" in document 1
 	end tell
 end activateSearchButton
 
 ---------------------------------------------
--- Set the Input
+-- SET the Input Value
 ---------------------------------------------
 on setInput(theValue)
-	log "---------------------------------"
-	log "setInput(" & theValue & ")"
-	log "---------------------------------"
+	set thePath to "#gnav-search input#search-query"
 	
 	tell application "Safari"
-		set inputPath to do JavaScript "document.querySelector('" & searchInputDOMPath & "').value = ('" & theValue & "');" in document 1
+		set inputPath to do JavaScript "document.querySelector('" & thePath & "').value = ('" & theValue & "');" in document 1
 	end tell
 end setInput
 
-
+---------------------------------------------
+-- GET the Input Value
+---------------------------------------------
 on getInput()
-	log "---------------------------------"
-	log "getInput()"
-	log "---------------------------------"
-	
 	set thePath to ".ss-navigateright + span + h1"
 	
 	tell application "Safari"
@@ -213,7 +212,7 @@ end getInput
 
 
 ---------------------------------------------
--- Evoke Etsy's population of suggested tags
+-- ACTIVATE Etsy Suggested Results
 ---------------------------------------------
 on inputEvent(keyword)
 	tell application "Safari"
@@ -239,18 +238,13 @@ on inputEvent(keyword)
 end inputEvent
 
 
-#############################################
+##########################################################################################
 # DOM HANDLERS
-#############################################
-
+##########################################################################################
 ---------------------------------------------
--- Get suggested keyword results from DOM
+-- Get suggested tag results from DOM
 ---------------------------------------------
 on getFromDOM(instance)
-	log "---------------------------------"
-	log "getFromDOM(" & instance & ")"
-	log "---------------------------------"
-	
 	tell application "Safari"
 		do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
 	end tell
@@ -258,16 +252,15 @@ end getFromDOM
 
 
 ---------------------------------------------
--- Suggested Tag results from DOM
+-- Suggested tag results from DOM
 ---------------------------------------------
 on getSuggestedTags(instance)
-	log "---------------------------------"
-	log "getSuggestedTags(" & instance & ")"
-	log "---------------------------------"
 	tell application "Safari"
 		try
 			set theData to do JavaScript "document.getElementsByClassName('as-suggestion')['" & instance & "'].innerText;" in document 1
+			
 			return theData
+			
 		on error
 			set theData to false
 		end try
@@ -275,18 +268,156 @@ on getSuggestedTags(instance)
 end getSuggestedTags
 
 
-#############################################
-# LOOP ROUTINES
-#############################################
+---------------------------------------------
+-- Get Seller Review value from the DOM
+---------------------------------------------
+on getSellerReviewsValue(instance)
+	set thePath to ".stars-svg + span"
+	
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "')[" & instance & "].innerText.replace(/,/g,'').replace('(','').replace(')','')" in document 1
+			
+			return theResult
+		on error
+			delay 1
+			return -1
+		end try
+	end tell
+end getSellerReviewsValue
 
+
+---------------------------------------------
+-- Count the Number of First Page Listings
+---------------------------------------------
+on countFirstPageListingResults()
+	set thePath to ".stars-svg + span"
+	
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "').length" in document 1
+			return theResult
+			
+		on error
+			delay 1
+			return "No Results Found."
+		end try
+	end tell
+end countFirstPageListingResults
+
+
+---------------------------------------------
+-- Get Number of Total Listings for a Tag
+---------------------------------------------
+on getTotalListings()
+	set thePath to ".ss-navigateright + span + h1 + span + span"
+	
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(/,/g,'').replace('(','').replace(')','').replace(' Result','').replace('s','')" in document 1
+			
+			set theValue to round theResult
+			
+			return theValue
+			
+		on error
+			return false
+		end try
+	end tell
+end getTotalListings
+
+
+##########################################################################################
+# USER PROMPT / FILE SELECTION
+##########################################################################################
+---------------------------------------------
+-- User Keyword Prompt
+---------------------------------------------
+on userInput()
+	set theKeyword to display dialog "Enter a keyword" default answer ""
+	set keyword to text returned of theKeyword as text
+	set firstKeyword to keyword
+	return keyword as text
+end userInput
+
+
+---------------------------------------------
+-- User Keyword Prompt 2 Buttons
+---------------------------------------------
+on userPrompt2Buttons(theText, buttonText1, buttonText2)
+	activate
+	display dialog theText buttons {buttonText1, buttonText2} default button buttonText2
+	if button returned of result = buttonText1 then
+		return false
+	else if button returned of result = buttonText2 then
+		return true
+	end if
+end userPrompt2Buttons
+
+
+---------------------------------------------
+-- User Input List
+---------------------------------------------
+on getDataFromUserInput()
+	set theList to {}
+	
+	repeat
+		set theTag to setInput(userInput())
+		insertItemInList(theTag, theList, 1)
+		set userResponse to userPrompt2Buttons("Add another tag?", "No", "Yes")
+		
+		if userResponse is false then
+			exit repeat
+		end if
+		
+		set theList to reverse of theList
+	end repeat
+	
+	set progress description to ""
+	set theListCount to length of theList
+	set progress total steps to theListCount
+	set progress completed steps to 0
+	set progress description to ""
+	
+	repeat with a from 1 to the count of theList
+		set currentItem to item a of theList
+		set progress description to "Getting tag data for " & currentItem & " / " & a & " of " & theListCount & ""
+		
+		setInput(currentItem) as text
+		set currentKeyword to currentItem as text
+		
+		activateSearchButton()
+		waitForPageLoad(currentItem)
+		
+		set totalListings to getTotalListings() as text
+		set avgReviews to getAvgReviews()
+		
+		if avgReviews is false then
+			set avgReviews to "No Results Found."
+		end if
+		
+		writeFile("Tag,Total Listings,Average Reviews, " & newLine & "", false) as text
+		writeFile(currentItem & "," & totalListings & "," & avgReviews & "," & newLine, false) as text
+		
+		set progress completed steps to a
+		delay 1
+	end repeat
+	
+	-- Progress Reset
+	set progress total steps to 0
+	set progress completed steps to 0
+	set progress description to ""
+	set progress additional description to ""
+end getDataFromUserInput
+
+
+##########################################################################################
+# LOOP ROUTINES
+##########################################################################################
 ---------------------------------------------
 -- Save the suggested words
 ---------------------------------------------
 on saveSuggestedTags()
-	log "================================="
-	log "saveSuggestedTags()"
-	log "================================="
-	
 	set theCount to -1
 	set theData to ""
 	
@@ -305,27 +436,6 @@ on saveSuggestedTags()
 	return
 end saveSuggestedTags
 
----------------------------------------------
--- Get Seller Review value from the DOM
----------------------------------------------
-on getSellerReviewsValue(instance)
-	set thePath to ".stars-svg + span"
-	
-	tell application "Safari"
-		try
-			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "')[" & instance & "].innerText.replace(/,/g,'').replace('(','').replace(')','')" in document 1
-			
-			return theResult
-			log "return " & theResult & ""
-			
-			
-		on error
-			log ("END of LOOP")
-			delay 1
-			return -1
-		end try
-	end tell
-end getSellerReviewsValue
 
 ---------------------------------------------
 -- Sum of Seller Reviews
@@ -339,9 +449,6 @@ on getTotalSellerReviews()
 		set loopChecker to getSellerReviewsValue(updatedCount)
 		
 		if loopChecker is -1 then
-			log "Return"
-			log theData
-			
 			return theData
 			exit repeat
 		end if
@@ -356,45 +463,18 @@ end getTotalSellerReviews
 
 
 ---------------------------------------------
--- Count the Number of First Page Listings
+-- Get Average Number of Reviews
 ---------------------------------------------
-on countFirstPageListingResults()
-	log "---------------------------------"
-	log "countFirstPageListingResults()"
-	log "---------------------------------"
-	
-	set thePath to ".stars-svg + span"
-	
-	tell application "Safari"
-		try
-			set theResult to do JavaScript "document.querySelectorAll('" & thePath & "').length" in document 1
-			return theResult
-		on error
-			delay 1
-			return "No Results Found."
-		end try
-	end tell
-end countFirstPageListingResults
-
-
----------------------------------------------
--- ROUTINE : Get Average Number of Reviews
----------------------------------------------
-
 on getAvgReviews()
-	log "================================="
-	log "getAvgReviews()"
-	log "================================="
-	
-	
 	set totalReviews to getTotalSellerReviews()
 	set totalListings to countFirstPageListingResults()
 	
-	set avgReviews to (totalReviews / totalListings)
-	log "" & totalReviews & " / " & totalListings & " = " & avgReviews & ""
+	if totalListings is 0 then
+		return false
+	end if
 	
+	set avgReviews to (totalReviews / totalListings)
 	set avgReviews to round avgReviews as text
-	log avgReviews
 	
 	return avgReviews
 end getAvgReviews
@@ -404,33 +484,27 @@ end getAvgReviews
 -- Loop the Alphabet file
 ---------------------------------------------
 on loopAlphabet()
-	log "================================="
-	log "loopAlphabet()"
-	log "================================="
-	
 	set theList to makeListFromFile(file_alphabet)
 	
 	repeat with a from 1 to length of theList
 		set theCurrentListItem to item a of theList
+		
 		inputEvent(theCurrentListItem)
+		
 		delay 2
+		
 		saveSuggestedTags()
 	end repeat
 end loopAlphabet
 
 
+##########################################################################################
+# PRIMARY ROUTINES
+##########################################################################################
 ---------------------------------------------
 -- Process the Base Keywords
 ---------------------------------------------
--- Makes a list from the existing base keywords file
--- Initiates Etsy's search bar populated related keywords for each line of the list
--- Writes the results to "results" file
-
 on processBaseKeywordsFile()
-	log "================================="
-	log "processBaseKeywordsFile()"
-	log "================================="
-	
 	set theList to makeListFromFile(file_baseKeywords)
 	set theList2 to makeListFromFile(file_alphabet)
 	
@@ -443,49 +517,29 @@ on processBaseKeywordsFile()
 			
 			inputEvent(theCurrentListItem & " " & theCurrentListItem2)
 			
-			delay 2
-			
 			saveSuggestedTags()
 		end repeat
 	end repeat
 end processBaseKeywordsFile
 
 ---------------------------------------------
--- Get Number of Total Listings for a Tag
+-- Process Competition and Avg Reviews
+-- (Active in Browser)
 ---------------------------------------------
-on getTotalListings()
-	log "---------------------------------"
-	log "getTotalListings()"
-	log "---------------------------------"
+on processOneListing()
+	set tagName to getInput()
+	set totalListings to getTotalListings() as text
+	set avgReviews to getAvgReviews()
 	
-	set thePath to ".ss-navigateright + span + h1 + span + span"
+	if avgReviews is false then
+		set avgReviews to "No Results Found."
+	end if
 	
-	tell application "Safari"
-		try
-			set theResult to do JavaScript "document.querySelector('" & thePath & "').innerText.replace(/,/g,'').replace('(','').replace(')','').replace(' Result','').replace('s','')" in document 1
-			log ("Do JS to get result.")
-			
-			delay 1
-			
-			set theValue to round theResult
-			log ("Round the result: " & theResult & "")
-			
-			return theValue
-			log ("Return theResult")
-			
-			error
-			
-			delay 1
-			
-			return false
-			log ("Return false")
-		end try
-	end tell
-end getTotalListings
-
+	writeFile(tagName & "," & totalListings & "," & avgReviews & "," & newLine, false) as text
+end processOneListing
 
 ---------------------------------------------
--- Process Competition and Reputation
+-- Process Competition and Avg Reviews
 ---------------------------------------------
 on processCompetitionAndReputation()
 	set theList to makeListFromFile(file_searchbar_longtail_tags)
@@ -494,55 +548,30 @@ on processCompetitionAndReputation()
 		set theCurrentListItem to item a of theList
 		
 		setInput(theCurrentListItem)
-		delay 1
 		
 		activateSearchButton()
-		delay 1
 		
 		waitForPageLoad(theCurrentListItem)
-		delay 2
 		
 		set totalListings to getTotalListings() as text
-		delay 1
 		
 		set avgReviews to getAvgReviews()
-		delay 1
+		
+		if avgReviews is false then
+			set avgReviews to "No Results Found."
+		end if
 		
 		writeFile(theCurrentListItem & "," & totalListings & "," & avgReviews & "," & newLine, false) as text
 	end repeat
 end processCompetitionAndReputation
 
 
----------------------------------------------
--- Process one listing
----------------------------------------------
-on processOneListing()
-	set tagName to getInput()
-	set resultsCount to getTotalListings()
-	set avgReviewsCount to getAvgReviews()
-	
-	if resultsCount is false then
-		set resultsCount to "No Results"
-	end if
-	
-	writeFile(tagName & "," & resultsCount & "," & avgReviewsCount & "," & newLine, false) as text
-end processOneListing
-
----------------------------------------------
--- Main Routine
----------------------------------------------
-
-#findNumberofListings()
-#getSellerReviewsValue(10)
-#saveReviews()
+##########################################################################################
+## HANDLER CALLS
+##########################################################################################
+#processCompetitionAndReputation()
 #processOneListing()
-#getAvgReviews()
-
-#processBaseKeywordsFile()
-processCompetitionAndReputation()
-#countFirstPageListingResults()
-#getTotalSellerReviews()
-
+getDataFromUserInput()
 
 
 
