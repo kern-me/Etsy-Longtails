@@ -80,23 +80,27 @@ end waitForPageLoad
 # FILE HANDLERS
 ##########################################################################################
 ---------------------------------------------
--- Reading and Writing Params
+-- Find Highest Number
 ---------------------------------------------
 on highest_number(values_list)
 	set the high_amount to ""
 	repeat with i from 1 to the count of the values_list
 		set this_item to item i of the values_list
 		set the item_class to the class of this_item
+		
 		if the item_class is in {integer, real} then
 			if the high_amount is "" then
 				set the high_amount to this_item
 			else if this_item is greater than the high_amount then
 				set the high_amount to item i of the values_list
 			end if
+			
 		else if the item_class is list then
 			set the high_value to highest_number(this_item)
-			if the the high_value is greater than the high_amount then Â
+			
+			if the the high_value is greater than the high_amount then
 				set the high_amount to the high_value
+			end if
 		end if
 	end repeat
 	return the high_amount
@@ -304,6 +308,7 @@ on getSellerReviewsValue(instance)
 			
 			return theResult
 		on error
+			log "Not found in the DOM"
 			return false
 		end try
 	end tell
@@ -348,9 +353,6 @@ on getTotalListings()
 		end try
 	end tell
 end getTotalListings
-
-
-
 
 
 ##########################################################################################
@@ -610,7 +612,6 @@ end getShopName
 ---------------------------------------------
 -- Insert item into list template
 ---------------------------------------------
-
 on makeList(theCountValue, delimiter, handlerType, removeDuplicates)
 	# Make the empty/container list
 	set theList to {}
@@ -619,13 +620,14 @@ on makeList(theCountValue, delimiter, handlerType, removeDuplicates)
 	set theCount to theCountValue
 	set updatedCount to ""
 	
+	# Remove Duplicates Setting
 	if removeDuplicates is true then
 		set removeDuplicatesSetting to true
 	else
 		set removeDuplicatesSetting to false
 	end if
 	
-	
+	# Handler Type Setting
 	if handlerType is 1 then
 		set handlerFlag to 1
 	else if handlerType is 2 then
@@ -633,7 +635,6 @@ on makeList(theCountValue, delimiter, handlerType, removeDuplicates)
 	else if handlerType is 3 then
 		set handlerFlag to 3
 	end if
-	
 	
 	# Iterate over items
 	repeat
@@ -653,41 +654,46 @@ on makeList(theCountValue, delimiter, handlerType, removeDuplicates)
 			else
 				insertItemInList(theData, theList, 1)
 			end if
+			
 		else if handlerFlag is 2 then
 			set theData to getSellerReviewsValue(updatedCount)
+			
 			if theData is false then
 				exit repeat
 			end if
-			insertItemInList(theData, theList, 1)
+			
+			set theData to theData as number
+			
+			if removeDuplicatesSetting is true then
+				if theData is not in theList then
+					insertItemInList(theData, theList, 1)
+				end if
+			else
+				insertItemInList(theData, theList, 1)
+			end if
 		else if handlerFlag is 3 then
-			set theData to getShopName(updatedCount)
-			set theData2 to getSellerReviewsValue(updatedCount)
-			if theData is false then
-				exit repeat
-			end if
-			if theData2 is false then
-				set theData2 to "No Reviews"
-			end if
-			insertItemInList(theData & ", " & theData2, theList, 1)
+			
 		end if
 		
-		
 		set theCount to theCount + 1
-		
 	end repeat
 	
 	return the reverse of theList
 end makeList
 
-makeList(0, ",", 1, true)
+
 ---------------------------------------------
 -- Find Listing with the Most Reviews
 ---------------------------------------------
 on findMVPListing()
-	#makeList(
+	set highestNumberList to makeList(0, ",", 2, true)
+	
+	set theResult to highest_number(highestNumberList)
+	
+	return theResult
 end findMVPListing
 
-
+findMVPListing()
 
 ##########################################################################################
 ## HANDLER CALLS
