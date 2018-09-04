@@ -304,8 +304,7 @@ on getSellerReviewsValue(instance)
 			
 			return theResult
 		on error
-			delay 1
-			return -1
+			return false
 		end try
 	end tell
 end getSellerReviewsValue
@@ -349,6 +348,9 @@ on getTotalListings()
 		end try
 	end tell
 end getTotalListings
+
+
+
 
 
 ##########################################################################################
@@ -572,13 +574,10 @@ on processCompetitionAndReputation()
 		set theCurrentListItem to item a of theList
 		
 		setInput(theCurrentListItem)
-		
 		activateSearchButton()
-		
 		waitForPageLoad(theCurrentListItem)
 		
 		set totalListings to getTotalListings() as text
-		
 		set avgReviews to getAvgReviews()
 		
 		if avgReviews is false then
@@ -589,13 +588,78 @@ on processCompetitionAndReputation()
 	end repeat
 end processCompetitionAndReputation
 
+##########################################################################################
+# GET SHOP NAME
+##########################################################################################
+
+---------------------------------------------
+-- Get Shop Name from the DOM
+---------------------------------------------
+on getShopName(instance)
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "document.getElementsByClassName('v2-listing-card__shop')[" & instance & "].querySelector('p').innerText" in document 1
+			return theResult
+		on error
+			log "Not found in the DOM"
+			return false
+		end try
+	end tell
+end getShopName
+
+---------------------------------------------
+-- Insert item into list template
+---------------------------------------------
+on makeList(theCountValue, delimiter, handlerType)
+	# Make the empty/container list
+	set theList to {}
+	set AppleScript's text item delimiters to "" & delimiter & ""
+	set text item delimiters to delimiter
+	set theCount to theCountValue
+	set updatedCount to ""
+	
+	
+	# Iterate over items
+	repeat
+		set updatedCount to (theCount + 1)
+		
+		set theData to getShopName(updatedCount)
+		set theData2 to getSellerReviewsValue(updatedCount)
+		
+		# Check for exit condition for first target
+		if theData is false then
+			exit repeat
+		end if
+		
+		# Check for missing data condition of second target
+		if theData2 is false then
+			set theData2 to "No Reviews"
+		end if
+		
+		# Insert data into the List
+		insertItemInList(theData & "," & theData2, theList, 1)
+		set theCount to theCount + 1
+		log theList
+	end repeat
+	return the reverse of theList
+end makeList
+
+makeList(0, ",", 2)
+---------------------------------------------
+-- Find Listing with the Most Reviews
+---------------------------------------------
+on findMVPListing()
+	#makeList(
+end findMVPListing
+
+
 
 ##########################################################################################
 ## HANDLER CALLS
 ##########################################################################################
 #processCompetitionAndReputation()
 #processOneListing()
-getDataFromUserInput()
+#getDataFromUserInput()
 
 
 
