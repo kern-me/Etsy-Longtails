@@ -611,13 +611,20 @@ end getShopName
 -- Insert item into list template
 ---------------------------------------------
 
-on makeList(theCountValue, delimiter, handlerType)
+on makeList(theCountValue, delimiter, handlerType, removeDuplicates)
 	# Make the empty/container list
 	set theList to {}
 	set AppleScript's text item delimiters to "" & delimiter & ""
 	set text item delimiters to delimiter
 	set theCount to theCountValue
 	set updatedCount to ""
+	
+	if removeDuplicates is true then
+		set removeDuplicatesSetting to true
+	else
+		set removeDuplicatesSetting to false
+	end if
+	
 	
 	if handlerType is 1 then
 		set handlerFlag to 1
@@ -634,10 +641,18 @@ on makeList(theCountValue, delimiter, handlerType)
 		
 		if handlerFlag is 1 then
 			set theData to getShopName(updatedCount)
+			
 			if theData is false then
 				exit repeat
 			end if
-			insertItemInList(theData, theList, 1)
+			
+			if removeDuplicatesSetting is true then
+				if theData is not in theList then
+					insertItemInList(theData, theList, 1)
+				end if
+			else
+				insertItemInList(theData, theList, 1)
+			end if
 		else if handlerFlag is 2 then
 			set theData to getSellerReviewsValue(updatedCount)
 			if theData is false then
@@ -655,14 +670,16 @@ on makeList(theCountValue, delimiter, handlerType)
 			end if
 			insertItemInList(theData & ", " & theData2, theList, 1)
 		end if
-
+		
+		
 		set theCount to theCount + 1
+		
 	end repeat
 	
 	return the reverse of theList
 end makeList
 
-makeList(0, ",", 3)
+makeList(0, ",", 1, true)
 ---------------------------------------------
 -- Find Listing with the Most Reviews
 ---------------------------------------------
