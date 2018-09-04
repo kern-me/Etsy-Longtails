@@ -610,6 +610,7 @@ end getShopName
 ---------------------------------------------
 -- Insert item into list template
 ---------------------------------------------
+
 on makeList(theCountValue, delimiter, handlerType)
 	# Make the empty/container list
 	set theList to {}
@@ -618,33 +619,50 @@ on makeList(theCountValue, delimiter, handlerType)
 	set theCount to theCountValue
 	set updatedCount to ""
 	
+	if handlerType is 1 then
+		set handlerFlag to 1
+	else if handlerType is 2 then
+		set handlerFlag to 2
+	else if handlerType is 3 then
+		set handlerFlag to 3
+	end if
+	
 	
 	# Iterate over items
 	repeat
 		set updatedCount to (theCount + 1)
 		
-		set theData to getShopName(updatedCount)
-		set theData2 to getSellerReviewsValue(updatedCount)
-		
-		# Check for exit condition for first target
-		if theData is false then
-			exit repeat
+		if handlerFlag is 1 then
+			set theData to getShopName(updatedCount)
+			if theData is false then
+				exit repeat
+			end if
+			insertItemInList(theData, theList, 1)
+		else if handlerFlag is 2 then
+			set theData to getSellerReviewsValue(updatedCount)
+			if theData is false then
+				exit repeat
+			end if
+			insertItemInList(theData, theList, 1)
+		else if handlerFlag is 3 then
+			set theData to getShopName(updatedCount)
+			set theData2 to getSellerReviewsValue(updatedCount)
+			if theData is false then
+				exit repeat
+			end if
+			if theData2 is false then
+				set theData2 to "No Reviews"
+			end if
+			insertItemInList(theData & ", " & theData2, theList, 1)
 		end if
-		
-		# Check for missing data condition of second target
-		if theData2 is false then
-			set theData2 to "No Reviews"
-		end if
-		
-		# Insert data into the List
-		insertItemInList(theData & "," & theData2, theList, 1)
+
 		set theCount to theCount + 1
-		log theList
 	end repeat
+	
 	return the reverse of theList
 end makeList
 
-makeList(0, ",", 2)
+makeList(0, ",", 3)
 ---------------------------------------------
 -- Find Listing with the Most Reviews
 ---------------------------------------------
