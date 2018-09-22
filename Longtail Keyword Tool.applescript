@@ -681,6 +681,22 @@ on makeList(theCountValue, delimiter, handlerType, removeDuplicates)
 	return the reverse of theList
 end makeList
 
+---------------------------------------------
+-- Find a string in the DOM
+---------------------------------------------
+on findString(theString)
+	tell application "Safari"
+		try
+			set theResult to do JavaScript "" in document 1
+			return theResult
+		on error
+			log "Not found in the DOM"
+			return false
+		end try
+	end tell
+end findString
+
+#findString()
 
 ---------------------------------------------
 -- Find Listing with the Most Reviews
@@ -693,7 +709,7 @@ on findMVPListing()
 	return theResult
 end findMVPListing
 
-findMVPListing()
+#findMVPListing()
 
 ##########################################################################################
 ## HANDLER CALLS
