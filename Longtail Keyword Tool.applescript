@@ -19,22 +19,16 @@ on load_script(_scriptName)
 	end tell
 end load_script
 
-(*on load_file(fileName)
-	tell application "Finder"
-		set posixPath to POSIX path of ((path to me as text) & "::")
-		set fullPath to (posixPath & fileName) as string
-		log fullPath
-		return fullPath as alias
-	end tell
-end load_file*)
-
 ##############################
 # ROUTINES
 ##############################
-on processBaseKeywordsFile()
+on processBaseKeywordsFile(actionSetting)
+	set unixPath to POSIX path of ((path to me as text) & "::")
+	set objectPath to unixPath & "objects/"
+	
 	set a to load_script("objects:list_fromFile.scpt")
-	set b to "/Users/nicokillips/dev/Etsy Products/Longtail Keyword Tool/objects/_alphabet.txt"
-	set c to "/Users/nicokillips/dev/Etsy Products/Longtail Keyword Tool/_base-keywords.txt"
+	set b to objectPath & "_alphabet.txt"
+	set c to unixPath & "_base-keywords.txt"
 	set d to load_script("objects:do_etsyInput.scpt")
 	set e to load_script("objects:routine_makeList.scpt")
 	set f to load_script("objects:list_insert.scpt")
@@ -68,9 +62,15 @@ on processBaseKeywordsFile()
 			
 		end repeat
 	end repeat
-	return theResultsList as text
+	if actionSetting is 1 then
+		return theResultsList as text
+	else if actionSetting is 2 then
+		set h to load_script("objects:file_write.scpt")
+		set theResultsList to theResultsList as text
+		tell h to writeFile(theResultsList, false, "longtail results", "txt")
+	end if
 end processBaseKeywordsFile
 
-processBaseKeywordsFile()
+processBaseKeywordsFile(2)
 
 
