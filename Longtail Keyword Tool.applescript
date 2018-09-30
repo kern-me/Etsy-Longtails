@@ -58,10 +58,12 @@ on processBaseKeywordsFile(actionSetting)
 			end tell
 			
 			tell e to set theItem to makeList(-1, newLine, 4, false) as text
+			
 			tell f to insertItemInList(theItem, theResultsList, 1) as text
 			
 		end repeat
 	end repeat
+	
 	if actionSetting is 1 then
 		return theResultsList as text
 	else if actionSetting is 2 then
@@ -72,5 +74,8 @@ on processBaseKeywordsFile(actionSetting)
 end processBaseKeywordsFile
 
 processBaseKeywordsFile(2)
+
+#set makeListScript to load_script("objects:routine_makeList.scpt")
+#tell makeListScript to makeList(-1, newLine, 4, false)
 
 
