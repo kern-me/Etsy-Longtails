@@ -115,7 +115,7 @@ on getLongtails()
 			tell h to writeFile(theCurrentListItem & newLine & theItem & newLine, false, "longtail results", "txt")
 		end repeat
 	end repeat
-end getLongtails
+end getLongtails 
 
 ########################################
 
